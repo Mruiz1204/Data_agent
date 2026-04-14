@@ -30,7 +30,7 @@ def main():
         # Selección de modelo
         model_name = st.selectbox(
             "🤖 Modelo OpenAI:",
-            ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo-preview"],
+            ["gpt-4o-mini-2024-07-18", "gpt-4", "gpt-4-turbo-preview"],
             index=0
         )
         
