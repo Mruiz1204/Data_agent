@@ -105,8 +105,8 @@ def main():
     st.header("📁 Carga tu archivo")
     uploaded_file = st.file_uploader(
         "Selecciona un archivo CSV o Excel:",
-        type=['csv', 'xlsx', 'xls'],
-        help="Formatos soportados: CSV, Excel (.xlsx, .xls)"
+        type=['csv', 'xlsx'],
+        help="Formatos soportados: CSV, Excel (.xlsx)"
     )
     
     if uploaded_file is not None:

@@ -1,7 +1,6 @@
-streamlit
-pandas>=2.2.3
-numpy>=2.1
+streamlit>=1.40
+numpy==2.2.6
+pandas==2.2.3
 openai>=1.54
-openpyxl
-xlrd
-Pillow
+openpyxl>=3.1.5
+Pillow>=10.4
