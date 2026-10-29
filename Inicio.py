@@ -1,18 +1,66 @@
 import streamlit as st
 import pandas as pd
 import os
+from PIL import Image
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain_openai import ChatOpenAI
 import warnings
 warnings.filterwarnings('ignore')
 
 def main():
+    try:
+        _icon = Image.open('logo_mr.png')
+    except Exception:
+        _icon = "📊"
     st.set_page_config(
-        page_title="Análisis de Datos con IA",
-        page_icon="📊",
+        page_title="Análisis de Datos · Miguel Ruiz",
+        page_icon=_icon,
         layout="wide"
     )
-    
+
+    # ---- Estilo personalizado: paleta azul petróleo + terracota (Miguel Ruiz) ----
+    st.markdown(
+        """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&family=Inter:wght@300;400;600&display=swap');
+        .stApp {
+            background: linear-gradient(135deg, #1b3a4b 0%, #14303d 100%);
+            color: #e8eef0;
+            font-family: 'Inter', sans-serif;
+        }
+        .stApp, .stApp p, .stApp li, .stApp span, .stApp label,
+        .stMarkdown, [data-testid="stCaptionContainer"],
+        [data-testid="stWidgetLabel"], [data-testid="stWidgetLabel"] * {
+            color: #e8eef0 !important;
+        }
+        h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif !important; color: #e07a5f !important; }
+        .stTextInput input, .stTextArea textarea,
+        .stSelectbox div[data-baseweb="select"] > div, .stNumberInput input {
+            background-color: #f3f6f7 !important; color: #14303d !important;
+        }
+        input::placeholder, textarea::placeholder { color: #5c7079 !important; }
+        [data-testid="stNotification"] * { color: #14303d !important; }
+        [data-testid="stMetricValue"], [data-testid="stMetricLabel"] { color: #f2cc8f !important; }
+        section[data-testid="stSidebar"] { background: #12272f; }
+        section[data-testid="stSidebar"] * { color: #e8eef0 !important; }
+        section[data-testid="stSidebar"] h1,
+        section[data-testid="stSidebar"] h2,
+        section[data-testid="stSidebar"] h3 { color: #e07a5f !important; }
+        section[data-testid="stSidebar"] input,
+        section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+            background-color: #f3f6f7 !important; color: #14303d !important;
+        }
+        .stButton>button {
+            background-color: #e07a5f; color: #fff !important; border-radius: 10px; border: none; font-weight: 600;
+        }
+        .stButton>button:hover { background-color: #c9583c; color: #fff !important; }
+        [data-testid="stDataFrame"] { background: #f3f6f7; border-radius: 8px; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("<h2 style=\"font-family:'Montserrat', sans-serif; font-weight:700; color:#f2cc8f; margin-bottom:0;\">Miguel Ruiz</h2>", unsafe_allow_html=True)
     st.title("📊 Análisis de Datos")
     st.markdown("**Carga tu archivo CSV/XLS y haz preguntas sobre tus datos usando IA**")
     
@@ -235,6 +283,8 @@ def main():
         - Respuestas en lenguaje natural
         - Generación de estadísticas y visualizaciones
         - Historial de conversación
+
+        _Desarrollado por Miguel Ruiz._
         """)
 
 if __name__ == "__main__":
