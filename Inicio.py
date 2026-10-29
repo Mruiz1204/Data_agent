@@ -2,8 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 from PIL import Image
-from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-from langchain_openai import ChatOpenAI
+from openai import OpenAI
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -168,31 +167,16 @@ def main():
                 else:
                     st.info("No hay columnas numéricas para mostrar estadísticas.")
             
-            # Crear el agente de pandas
+            # Agente de análisis con OpenAI (directo, sin langchain)
             st.header("🤖 Agente de Análisis IA")
-            
+
             if not openai_api_key:
                 st.warning("⚠️ Ingresa tu API Key de OpenAI en la barra lateral para activar el agente.")
             else:
                 try:
-                    # Inicializar el modelo de OpenAI
-                    llm = ChatOpenAI(
-                        model=model_name,
-                        temperature=temperature,
-                        openai_api_key=openai_api_key
-                    )
-                    
-                    # Crear el agente — usando string "openai-tools" en lugar de AgentType
-                    agent = create_pandas_dataframe_agent(
-                        llm,
-                        df,
-                        verbose=True,
-                        agent_type="openai-tools",
-                        allow_dangerous_code=True
-                    )
-                    
+                    client = OpenAI(api_key=openai_api_key)
                     st.success("🎯 Agente IA inicializado correctamente")
-                    
+
                     # Ejemplos de preguntas
                     st.subheader("💡 Ejemplos de preguntas que puedes hacer:")
                     examples = [
@@ -201,66 +185,95 @@ def main():
                         "Muestra un resumen estadístico de los datos",
                         "¿Hay valores nulos en el dataset?",
                         "¿Cuál es la correlación entre las variables numéricas?",
-                        "Crea un gráfico de las variables más importantes",
                         "¿Cuáles son los valores únicos de [nombre_columna]?",
                         "Calcula la media, mediana y moda de [columna_numerica]"
                     ]
-                    
                     for i, example in enumerate(examples, 1):
                         st.write(f"{i}. {example}")
-                    
+
                     # Interface para hacer preguntas
                     st.subheader("❓ Haz tu pregunta sobre los datos")
-                    
-                    # Historial de conversación
+
                     if 'chat_history' not in st.session_state:
                         st.session_state.chat_history = []
-                    
-                    # Campo de entrada para la pregunta
+
                     user_question = st.text_input(
                         "Escribe tu pregunta:",
                         placeholder="Ej: ¿Cuál es la correlación entre las variables numéricas?",
                         key="user_input"
                     )
-                    
+
                     col1, col2 = st.columns([1, 4])
                     with col1:
                         ask_button = st.button("🚀 Preguntar", type="primary")
                     with col2:
                         clear_button = st.button("🗑️ Limpiar historial")
-                    
+
                     if clear_button:
                         st.session_state.chat_history = []
                         st.rerun()
-                    
+
+                    def construir_contexto(dataframe):
+                        """Resumen del dataframe para dar contexto a GPT."""
+                        resumen = []
+                        resumen.append(f"El dataset tiene {dataframe.shape[0]} filas y {dataframe.shape[1]} columnas.")
+                        resumen.append("Columnas y tipos:\n" + "\n".join(
+                            f"- {c} ({t})" for c, t in dataframe.dtypes.astype(str).items()
+                        ))
+                        nulos = dataframe.isnull().sum()
+                        nulos = nulos[nulos > 0]
+                        if not nulos.empty:
+                            resumen.append("Valores nulos:\n" + "\n".join(f"- {c}: {n}" for c, n in nulos.items()))
+                        num = dataframe.select_dtypes(include=['number'])
+                        if not num.empty:
+                            resumen.append("Estadísticas de columnas numéricas:\n" + num.describe().to_string())
+                        resumen.append("Primeras filas de ejemplo:\n" + dataframe.head(10).to_string())
+                        return "\n\n".join(resumen)
+
                     if ask_button and user_question:
                         with st.spinner("🔄 El agente está analizando tus datos..."):
                             try:
-                                response = agent.invoke({"input": user_question})
-                                
+                                contexto = construir_contexto(df)
+                                mensajes = [
+                                    {"role": "system", "content": (
+                                        "Eres un analista de datos experto. Respondes en español, de forma clara y precisa, "
+                                        "basándote únicamente en la información del dataset que se te proporciona. "
+                                        "Si un cálculo exacto no es posible con el resumen dado, explícalo y da la mejor "
+                                        "estimación o indica qué columna revisar."
+                                    )},
+                                    {"role": "user", "content": (
+                                        f"Información del dataset:\n{contexto}\n\n"
+                                        f"Pregunta del usuario: {user_question}"
+                                    )},
+                                ]
+                                completion = client.chat.completions.create(
+                                    model=model_name,
+                                    temperature=temperature,
+                                    messages=mensajes,
+                                    max_tokens=800,
+                                )
+                                answer = completion.choices[0].message.content
                                 st.session_state.chat_history.append({
                                     "question": user_question,
-                                    "answer": response["output"]
+                                    "answer": answer
                                 })
-                                
                                 st.rerun()
-                                
                             except Exception as e:
                                 st.error(f"❌ Error al procesar la pregunta: {str(e)}")
-                                st.info("💡 Intenta reformular tu pregunta o verifica que la columna mencionada existe en el dataset.")
-                    
+                                st.info("💡 Verifica que tu API key sea válida y tenga créditos disponibles.")
+
                     # Mostrar historial de conversación
                     if st.session_state.chat_history:
                         st.subheader("💬 Historial de conversación")
-                        
                         for i, chat in enumerate(reversed(st.session_state.chat_history)):
-                            with st.expander(f"❓ {chat['question'][:60]}..." if len(chat['question']) > 60 else f"❓ {chat['question']}", expanded=(i==0)):
+                            titulo = f"❓ {chat['question'][:60]}..." if len(chat['question']) > 60 else f"❓ {chat['question']}"
+                            with st.expander(titulo, expanded=(i == 0)):
                                 st.write("**Pregunta:**")
                                 st.write(chat['question'])
                                 st.write("**Respuesta:**")
                                 st.write(chat['answer'])
                                 st.divider()
-                    
+
                 except Exception as e:
                     st.error(f"❌ Error al inicializar el agente: {str(e)}")
                     st.info("Verifica que tu API key de OpenAI sea válida y tenga créditos disponibles.")
